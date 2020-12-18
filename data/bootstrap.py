@@ -69,6 +69,7 @@ def create_tables():
         '''CREATE TABLE readiness_data (
             id SERIAL PRIMARY KEY,
             summary_date DATE,
+            rest_mode_state INT,
             period_id INT,
             score INT,
             score_previous_night INT,
@@ -84,6 +85,7 @@ def create_tables():
         '''CREATE TABLE activity_data (
             id SERIAL PRIMARY KEY,
             summary_date DATE,
+            rest_mode_state INT,
             day_start TIMESTAMP,
             day_end TIMESTAMP,
             timezone INT,

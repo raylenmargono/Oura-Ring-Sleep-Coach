@@ -1,0 +1,1299 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": "-- Grafana --",
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "gnetId": null,
+  "graphTooltip": 0,
+  "id": 1,
+  "links": [],
+  "panels": [
+    {
+      "cacheTimeout": null,
+      "columns": [],
+      "datasource": null,
+      "fontSize": "100%",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 0
+      },
+      "id": 16,
+      "links": [],
+      "options": {},
+      "pageSize": null,
+      "pluginVersion": "6.4.0",
+      "showHeader": true,
+      "sort": {
+        "col": 0,
+        "desc": false
+      },
+      "styles": [
+        {
+          "alias": "Bed Time",
+          "dateFormat": "MMMM D, YYYY LT",
+          "pattern": "time",
+          "type": "date"
+        }
+      ],
+      "targets": [
+        {
+          "format": "table",
+          "group": [],
+          "metricColumn": "none",
+          "rawQuery": true,
+          "rawSql": "WITH latency AS (\n  WITH Q AS (\n\t  SELECT percentile_disc(0.5) within group (order by sleep_data.onset_latency) as latency\n\t  FROM sleep_data\n\t  WHERE sleep_data.summary_date >= now() - interval '30d'\n  )\n  SELECT latency, (now() AT TIME ZONE 'EST')::DATE as date FROM Q\n),\nday_of_week as (select extract(isodow from DATE 'tomorrow' AT TIME ZONE 'EST') as d),\nday as (\nselect CASE \n WHEN day_of_week.d =1 THEN 'MONDAY'\n WHEN day_of_week.d =2 THEN 'TUESDAY'\n WHEN day_of_week.d=3 THEN 'WEDNESDAY'\n WHEN day_of_week.d=4 THEN 'THURSDAY'\n WHEN day_of_week.d=5 THEN 'FRIDAY'\n WHEN day_of_week.d=6 THEN 'SATURDAY'\n WHEN day_of_week.d=7 THEN 'SUNDAY'\n ELSE 'OTHER'\n END from day_of_week \n)\nSELECT\n\t(\n\t\t(date_trunc('day', now() AT TIME ZONE 'EST' + INTERVAL '1 day') AT TIME ZONE 'EST') \n\t\t+ INTERVAL '4h'\n\t\t+ INTERVAL '1h' * sleep_schedule.hour \n\t\t+ INTERVAL '1m' * sleep_schedule.minute\n\t\t- sleep_coach.total_sleep_predicted * INTERVAL '1s'\n\t\t- latency.latency * INTERVAL '1s'\n\t) AT TIME ZONE 'EST' as time,\n\tsleep_coach.readiness_level as performance_level,\n \tsleep_coach.total_sleep_predicted,\n \tlatency.latency,\n \tformat('%s:%s', sleep_schedule.hour, sleep_schedule.minute) as wake_up_time\nFROM sleep_schedule\nJOIN day ON day.case = sleep_schedule.day\nJOIN sleep_coach ON sleep_coach.prediction_date::DATE = (now() AT TIME ZONE 'EST')::DATE\nJOIN latency ON latency.date = (now() AT TIME ZONE 'EST')::DATE",
+          "refId": "A",
+          "select": [
+            [
+              {
+                "params": [
+                  "value"
+                ],
+                "type": "column"
+              }
+            ]
+          ],
+          "timeColumn": "time",
+          "where": [
+            {
+              "name": "$__timeFilter",
+              "params": [],
+              "type": "macro"
+            }
+          ]
+        },
+        {
+          "format": "table",
+          "group": [],
+          "metricColumn": "none",
+          "rawQuery": true,
+          "rawSql": "\n",
+          "refId": "B",
+          "select": [
+            [
+              {
+                "params": [
+                  "value"
+                ],
+                "type": "column"
+              }
+            ]
+          ],
+          "timeColumn": "time",
+          "where": [
+            {
+              "name": "$__timeFilter",
+              "params": [],
+              "type": "macro"
+            }
+          ]
+        }
+      ],
+      "timeFrom": null,
+      "timeShift": null,
+      "title": "Bed Time For Performance Level",
+      "transform": "table",
+      "type": "table"
+    },
+    {
+      "datasource": null,
+      "description": "\n",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 0
+      },
+      "id": 14,
+      "options": {
+        "displayMode": "gradient",
+        "fieldOptions": {
+          "calcs": [
+            "mean"
+          ],
+          "defaults": {
+            "mappings": [],
+            "max": 36000,
+            "min": 0,
+            "thresholds": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "#EAB839",
+                "value": 25200
+              },
+              {
+                "color": "green",
+                "value": 28800
+              }
+            ],
+            "title": "${__field.name}",
+            "unit": "dthms"
+          },
+          "override": {},
+          "values": true
+        },
+        "orientation": "vertical"
+      },
+      "pluginVersion": "6.4.0",
+      "targets": [
+        {
+          "format": "table",
+          "group": [],
+          "metricColumn": "none",
+          "rawQuery": true,
+          "rawSql": "SELECT \nprediction_date as time,\ntotal_sleep_predicted as PEAK\nFROM sleep_coach\nWHERE readiness_level='PEAK' AND prediction_date::DATE = (now() AT TIME ZONE 'EST')::DATE\n",
+          "refId": "A",
+          "select": [
+            [
+              {
+                "params": [
+                  "value"
+                ],
+                "type": "column"
+              }
+            ]
+          ],
+          "timeColumn": "time",
+          "where": [
+            {
+              "name": "$__timeFilter",
+              "params": [],
+              "type": "macro"
+            }
+          ]
+        },
+        {
+          "format": "table",
+          "group": [],
+          "metricColumn": "none",
+          "rawQuery": true,
+          "rawSql": "SELECT \nprediction_date as time,\ntotal_sleep_predicted as GET_BY\nFROM sleep_coach\nWHERE readiness_level='GET_BY' AND prediction_date::DATE = (now() AT TIME ZONE 'EST')::DATE\n\n",
+          "refId": "B",
+          "select": [
+            [
+              {
+                "params": [
+                  "value"
+                ],
+                "type": "column"
+              }
+            ]
+          ],
+          "timeColumn": "time",
+          "where": [
+            {
+              "name": "$__timeFilter",
+              "params": [],
+              "type": "macro"
+            }
+          ]
+        },
+        {
+          "format": "table",
+          "group": [],
+          "metricColumn": "none",
+          "rawQuery": true,
+          "rawSql": "SELECT \nprediction_date as time,\ntotal_sleep_predicted as EASY\nFROM sleep_coach\nWHERE readiness_level='EASY' AND prediction_date::DATE = (now() AT TIME ZONE 'EST')::DATE",
+          "refId": "C",
+          "select": [
+            [
+              {
+                "params": [
+                  "value"
+                ],
+                "type": "column"
+              }
+            ]
+          ],
+          "timeColumn": "time",
+          "where": [
+            {
+              "name": "$__timeFilter",
+              "params": [],
+              "type": "macro"
+            }
+          ]
+        }
+      ],
+      "timeFrom": null,
+      "timeShift": null,
+      "title": "Total Sleep Recommended Today (Hours)",
+      "type": "bargauge"
+    },
+    {
+      "datasource": null,
+      "gridPos": {
+        "h": 7,
+        "w": 8,
+        "x": 0,
+        "y": 8
+      },
+      "id": 4,
+      "options": {
+        "fieldOptions": {
+          "calcs": [
+            "mean"
+          ],
+          "defaults": {
+            "mappings": [],
+            "max": 100,
+            "min": 0,
+            "thresholds": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "#EAB839",
+                "value": 50
+              },
+              {
+                "color": "green",
+                "value": 80
+              }
+            ],
+            "title": "Today's Readiness Score"
+          },
+          "override": {},
+          "values": false
+        },
+        "orientation": "auto",
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true
+      },
+      "pluginVersion": "6.4.0",
+      "targets": [
+        {
+          "format": "table",
+          "group": [],
+          "metricColumn": "none",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  score\nFROM\n  readiness_data\nORDER BY summary_date DESC\nLIMIT 1",
+          "refId": "A",
+          "select": [
+            [
+              {
+                "params": [
+                  "value"
+                ],
+                "type": "column"
+              }
+            ]
+          ],
+          "timeColumn": "time",
+          "where": [
+            {
+              "name": "$__timeFilter",
+              "params": [],
+              "type": "macro"
+            }
+          ]
+        }
+      ],
+      "timeFrom": null,
+      "timeShift": null,
+      "title": "",
+      "type": "gauge"
+    },
+    {
+      "datasource": null,
+      "gridPos": {
+        "h": 7,
+        "w": 8,
+        "x": 8,
+        "y": 8
+      },
+      "id": 5,
+      "options": {
+        "fieldOptions": {
+          "calcs": [
+            "mean"
+          ],
+          "defaults": {
+            "mappings": [],
+            "max": 100,
+            "min": 0,
+            "thresholds": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "#EAB839",
+                "value": 50
+              },
+              {
+                "color": "green",
+                "value": 80
+              }
+            ],
+            "title": "Last Night's Sleep Score"
+          },
+          "override": {},
+          "values": false
+        },
+        "orientation": "auto",
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true
+      },
+      "pluginVersion": "6.4.0",
+      "targets": [
+        {
+          "format": "table",
+          "group": [],
+          "metricColumn": "none",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  score\nFROM\n  sleep_data\nORDER BY summary_date DESC\nLIMIT 1",
+          "refId": "A",
+          "select": [
+            [
+              {
+                "params": [
+                  "value"
+                ],
+                "type": "column"
+              }
+            ]
+          ],
+          "timeColumn": "time",
+          "where": [
+            {
+              "name": "$__timeFilter",
+              "params": [],
+              "type": "macro"
+            }
+          ]
+        }
+      ],
+      "timeFrom": null,
+      "timeShift": null,
+      "title": "",
+      "type": "gauge"
+    },
+    {
+      "datasource": null,
+      "gridPos": {
+        "h": 7,
+        "w": 8,
+        "x": 16,
+        "y": 8
+      },
+      "id": 6,
+      "options": {
+        "fieldOptions": {
+          "calcs": [
+            "mean"
+          ],
+          "defaults": {
+            "mappings": [],
+            "max": 100,
+            "min": 0,
+            "thresholds": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "#EAB839",
+                "value": 50
+              },
+              {
+                "color": "green",
+                "value": 80
+              }
+            ],
+            "title": "Current Activity Score"
+          },
+          "override": {},
+          "values": false
+        },
+        "orientation": "auto",
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true
+      },
+      "pluginVersion": "6.4.0",
+      "targets": [
+        {
+          "format": "table",
+          "group": [],
+          "metricColumn": "none",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  score\nFROM\n  activity_data\nORDER BY summary_date DESC\nLIMIT 1",
+          "refId": "A",
+          "select": [
+            [
+              {
+                "params": [
+                  "value"
+                ],
+                "type": "column"
+              }
+            ]
+          ],
+          "timeColumn": "time",
+          "where": [
+            {
+              "name": "$__timeFilter",
+              "params": [],
+              "type": "macro"
+            }
+          ]
+        }
+      ],
+      "timeFrom": null,
+      "timeShift": null,
+      "title": "",
+      "type": "gauge"
+    },
+    {
+      "aliasColors": {},
+      "bars": true,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": null,
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 15
+      },
+      "id": 2,
+      "legend": {
+        "avg": false,
+        "current": false,
+        "max": false,
+        "min": false,
+        "show": true,
+        "total": false,
+        "values": false
+      },
+      "lines": true,
+      "linewidth": 1,
+      "nullPointMode": "null",
+      "options": {
+        "dataLinks": []
+      },
+      "percentage": false,
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [
+        {
+          "alias": "score",
+          "color": "#37872D"
+        }
+      ],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "format": "time_series",
+          "group": [],
+          "metricColumn": "none",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  (summary_date::TIMESTAMP AT TIME ZONE 'EST') as time,\n  score\nFROM\n  readiness_data\nWHERE\n  $__timeFilter(summary_date::TIMESTAMP)\nORDER BY time",
+          "refId": "A",
+          "select": [
+            [
+              {
+                "params": [
+                  "value"
+                ],
+                "type": "column"
+              }
+            ]
+          ],
+          "timeColumn": "time",
+          "where": [
+            {
+              "name": "$__timeFilter",
+              "params": [],
+              "type": "macro"
+            }
+          ]
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "Daily Readiness Score",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": true,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": null,
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 15
+      },
+      "id": 7,
+      "legend": {
+        "avg": false,
+        "current": false,
+        "max": false,
+        "min": false,
+        "show": true,
+        "total": false,
+        "values": false
+      },
+      "lines": true,
+      "linewidth": 1,
+      "nullPointMode": "null",
+      "options": {
+        "dataLinks": []
+      },
+      "percentage": false,
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [
+        {
+          "alias": "score",
+          "color": "#5794F2"
+        }
+      ],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "format": "time_series",
+          "group": [],
+          "metricColumn": "none",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  (summary_date::TIMESTAMP AT TIME ZONE 'EST') as time,\n  score\nFROM\n  sleep_data\nWHERE\n  $__timeFilter(summary_date::TIMESTAMP)\nORDER BY time\n",
+          "refId": "A",
+          "select": [
+            [
+              {
+                "params": [
+                  "value"
+                ],
+                "type": "column"
+              }
+            ]
+          ],
+          "timeColumn": "time",
+          "where": [
+            {
+              "name": "$__timeFilter",
+              "params": [],
+              "type": "macro"
+            }
+          ]
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "Daily Sleep Score",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": null,
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 15
+      },
+      "id": 8,
+      "legend": {
+        "avg": false,
+        "current": false,
+        "max": false,
+        "min": false,
+        "show": true,
+        "total": false,
+        "values": false
+      },
+      "lines": true,
+      "linewidth": 1,
+      "nullPointMode": "null",
+      "options": {
+        "dataLinks": []
+      },
+      "percentage": false,
+      "pointradius": 2,
+      "points": true,
+      "renderer": "flot",
+      "seriesOverrides": [
+        {
+          "alias": "score",
+          "color": "#FFA6B0"
+        }
+      ],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "format": "time_series",
+          "group": [],
+          "metricColumn": "none",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  (summary_date::TIMESTAMP AT TIME ZONE 'EST') as time,\n  score\nFROM\n  activity_data\nWHERE\n  $__timeFilter(summary_date::TIMESTAMP)\nORDER BY time\n",
+          "refId": "A",
+          "select": [
+            [
+              {
+                "params": [
+                  "value"
+                ],
+                "type": "column"
+              }
+            ]
+          ],
+          "timeColumn": "time",
+          "where": [
+            {
+              "name": "$__timeFilter",
+              "params": [],
+              "type": "macro"
+            }
+          ]
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "Daily Activity Score",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "datasource": null,
+      "description": "Latency in the past 30 days is the measurement for sleep coach contribution",
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 23
+      },
+      "id": 20,
+      "options": {
+        "fieldOptions": {
+          "calcs": [
+            "mean"
+          ],
+          "defaults": {
+            "mappings": [],
+            "max": 100,
+            "min": 0,
+            "thresholds": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "#EAB839",
+                "value": 1800
+              },
+              {
+                "color": "red",
+                "value": 2700
+              }
+            ],
+            "title": "Median Latency Past 30 Days",
+            "unit": "dthms"
+          },
+          "override": {},
+          "values": false
+        },
+        "orientation": "auto",
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true
+      },
+      "pluginVersion": "6.4.0",
+      "targets": [
+        {
+          "format": "time_series",
+          "group": [],
+          "metricColumn": "none",
+          "rawQuery": true,
+          "rawSql": "WITH Q AS (\n\tSELECT \n\t    percentile_disc(0.5) within group (order by sleep_data.onset_latency) as median_latency\n  \tFROM sleep_data\n  \tWHERE sleep_data.summary_date >= now() - interval '30d'\n)\nSELECT median_latency, now() AT TIME ZONE 'EST' as time FROM Q\n",
+          "refId": "A",
+          "select": [
+            [
+              {
+                "params": [
+                  "value"
+                ],
+                "type": "column"
+              }
+            ]
+          ],
+          "timeColumn": "time",
+          "where": [
+            {
+              "name": "$__timeFilter",
+              "params": [],
+              "type": "macro"
+            }
+          ]
+        }
+      ],
+      "timeFrom": null,
+      "timeShift": null,
+      "title": "",
+      "type": "gauge"
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": null,
+      "description": " Detected latency from bedtime_start to the beginning of the first five minutes of persistent sleep. ",
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 23
+      },
+      "id": 18,
+      "legend": {
+        "avg": false,
+        "current": false,
+        "max": false,
+        "min": false,
+        "show": true,
+        "total": false,
+        "values": false
+      },
+      "lines": true,
+      "linewidth": 1,
+      "nullPointMode": "null",
+      "options": {
+        "dataLinks": []
+      },
+      "percentage": false,
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [
+        {
+          "alias": "onset_latency",
+          "color": "#FADE2A"
+        },
+        {
+          "alias": "Weekly Moving Average",
+          "color": "#37872D"
+        },
+        {
+          "alias": "median_latency",
+          "color": "#F2495C"
+        }
+      ],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "format": "time_series",
+          "group": [],
+          "metricColumn": "none",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  (summary_date::TIMESTAMP AT TIME ZONE 'EST') as time,\n  onset_latency\nFROM\n  sleep_data\nWHERE\n  $__timeFilter(summary_date::TIMESTAMP )\nORDER BY time\n",
+          "refId": "A",
+          "select": [
+            [
+              {
+                "params": [
+                  "value"
+                ],
+                "type": "column"
+              }
+            ]
+          ],
+          "timeColumn": "time",
+          "where": [
+            {
+              "name": "$__timeFilter",
+              "params": [],
+              "type": "macro"
+            }
+          ]
+        },
+        {
+          "format": "time_series",
+          "group": [],
+          "metricColumn": "none",
+          "rawQuery": true,
+          "rawSql": "WITH Q AS (\n  SELECT \n    (summary_date::TIMESTAMP AT TIME ZONE 'EST') as time,\n    AVG(onset_latency) OVER(ORDER BY (summary_date::TIMESTAMP AT TIME ZONE 'EST') ROWS BETWEEN 7 PRECEDING AND CURRENT ROW) AS value,\n    'Weekly Moving Average' as metric \n  FROM sleep_data\n  ORDER BY time ASC\n)\nSELECT time, value, metric FROM Q\nWHERE $__timeFilter(time)",
+          "refId": "B",
+          "select": [
+            [
+              {
+                "params": [
+                  "value"
+                ],
+                "type": "column"
+              }
+            ]
+          ],
+          "timeColumn": "time",
+          "where": [
+            {
+              "name": "$__timeFilter",
+              "params": [],
+              "type": "macro"
+            }
+          ]
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "Sleep Latency",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "format": "dthms",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "content": "<form id=\"event-form\">\n  <label for=\"event\">Event Name:</label><br>\n  <input type=\"text\" id=\"event\" name=\"event\"><br>\n  <br/>\n  <label for=\"lname\">Date of Event:</label><br>\n  <input type=\"date\" id=\"date\" name=\"date\">\n  <input type=\"submit\" value=\"Submit\">\n</form>\n<script>\n  document.getElementById('event-form').addEventListener('submit', function (e) {\n    e.preventDefault()\n    \n    const event = document.getElementById('event').value\n    const date = document.getElementById('date').value\n    const sql = `SELECT now() as time FROM events LIMIT 1; INSERT INTO events (name, event_datetime\\) VALUES ('${event}', '${date}'\\)`\n    \n    fetch('/api/tsdb/query', {\n      method: 'POST',\n      headers: {\n        'Content-type': 'application/json',\n      },\n\n      body: JSON.stringify({\n        queries: [\n          {\n            datasourceId: 1,\n            rawSql: sql,\n          }\n        ]\n      })\n    }).then(data => {\n      console.log(data)\n    }).catch(e => {\n      console.log(e)\n    })\n  })\n</script>",
+      "datasource": null,
+      "gridPos": {
+        "h": 8,
+        "w": 4,
+        "x": 0,
+        "y": 31
+      },
+      "id": 22,
+      "links": [],
+      "mode": "html",
+      "options": {},
+      "targets": [
+        {
+          "format": "time_series",
+          "group": [],
+          "metricColumn": "none",
+          "rawQuery": false,
+          "rawSql": "SELECT\n  $__time(time_column),\n  value1\nFROM\n  metric_table\nWHERE\n  $__timeFilter(time_column)\n",
+          "refId": "A",
+          "select": [
+            [
+              {
+                "params": [
+                  "value"
+                ],
+                "type": "column"
+              }
+            ]
+          ],
+          "timeColumn": "time",
+          "where": [
+            {
+              "name": "$__timeFilter",
+              "params": [],
+              "type": "macro"
+            }
+          ]
+        }
+      ],
+      "timeFrom": null,
+      "timeShift": null,
+      "title": "Log Event Into DB",
+      "type": "text"
+    },
+    {
+      "cacheTimeout": null,
+      "columns": [],
+      "datasource": null,
+      "fontSize": "100%",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 4,
+        "y": 31
+      },
+      "id": 10,
+      "links": [],
+      "options": {},
+      "pageSize": null,
+      "pluginVersion": "6.4.0",
+      "showHeader": true,
+      "sort": {
+        "col": 0,
+        "desc": true
+      },
+      "styles": [
+        {
+          "alias": "Datetime",
+          "colorMode": null,
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "dateFormat": "MMMM D, YYYY LT",
+          "decimals": 2,
+          "mappingType": 1,
+          "pattern": "time",
+          "thresholds": [],
+          "type": "date",
+          "unit": "short"
+        },
+        {
+          "alias": "Event Name",
+          "colorMode": null,
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "decimals": 2,
+          "mappingType": 1,
+          "pattern": "metric",
+          "preserveFormat": false,
+          "sanitize": false,
+          "thresholds": [],
+          "type": "string",
+          "unit": "short",
+          "valueMaps": []
+        }
+      ],
+      "targets": [
+        {
+          "format": "table",
+          "group": [],
+          "metricColumn": "name",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  event_datetime AT TIME ZONE 'EST' AS \"time\",\n  name AS metric\nFROM events\nWHERE\n  $__timeFilter(event_datetime)\nORDER BY event_datetime",
+          "refId": "A",
+          "select": [
+            [
+              {
+                "params": [
+                  "id"
+                ],
+                "type": "column"
+              }
+            ]
+          ],
+          "table": "events",
+          "timeColumn": "event_datetime",
+          "timeColumnType": "timestamp",
+          "where": [
+            {
+              "name": "$__timeFilter",
+              "params": [],
+              "type": "macro"
+            }
+          ]
+        }
+      ],
+      "timeFrom": null,
+      "timeShift": null,
+      "title": "Event Table",
+      "transform": "table",
+      "type": "table"
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": null,
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 39
+      },
+      "id": 12,
+      "legend": {
+        "avg": false,
+        "current": false,
+        "max": false,
+        "min": false,
+        "show": true,
+        "total": false,
+        "values": false
+      },
+      "lines": true,
+      "linewidth": 1,
+      "nullPointMode": "null",
+      "options": {
+        "dataLinks": []
+      },
+      "percentage": false,
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "format": "time_series",
+          "group": [],
+          "metricColumn": "none",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  (prediction_date::TIMESTAMP AT TIME ZONE 'EST') AS time,\n  total_sleep_obtained,\n  total_sleep_predicted\nFROM\n  sleep_coach\nWHERE\n  $__timeFilter(prediction_date::TIMESTAMP)\nORDER BY id\n",
+          "refId": "A",
+          "select": [
+            [
+              {
+                "params": [
+                  "value"
+                ],
+                "type": "column"
+              }
+            ]
+          ],
+          "timeColumn": "time",
+          "where": [
+            {
+              "name": "$__timeFilter",
+              "params": [],
+              "type": "macro"
+            }
+          ]
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "Model Performance",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    }
+  ],
+  "refresh": false,
+  "schemaVersion": 20,
+  "style": "dark",
+  "tags": [],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "now-30d",
+    "to": "now"
+  },
+  "timepicker": {
+    "refresh_intervals": [
+      "5s",
+      "10s",
+      "30s",
+      "1m",
+      "5m",
+      "15m",
+      "30m",
+      "1h",
+      "2h",
+      "1d"
+    ]
+  },
+  "timezone": "",
+  "title": "Summary",
+  "uid": "_DDrmlSMz",
+  "version": 14
+}
