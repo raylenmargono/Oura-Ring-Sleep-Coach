@@ -1,3 +1,3 @@
 # Oura-Ring-Sleep-Coach
 
-![Alt text](Preview.jpg?raw=true "Title")
+![Alt text](Preview.png?raw=true "Title")
